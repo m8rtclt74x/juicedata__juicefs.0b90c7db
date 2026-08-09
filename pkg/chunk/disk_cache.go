@@ -955,7 +955,7 @@ func (cache *cacheStore) scanCached(fast bool) {
 	cache.Unlock()
 
 	var start = time.Now()
-	var oneMinAgo = start.Add(time.Minute)
+	var oneMinAgo = start.Add(-time.Minute)
 
 	cachePrefix := filepath.Join(cache.dir, cacheDir)
 	logger.Debugf("Scan %s to find cached blocks", cachePrefix)
@@ -988,7 +988,7 @@ func (cache *cacheStore) scanCached(fast bool) {
 					key = strings.ReplaceAll(key, "\\", "/")
 				}
 				atime := uint32(getAtime(fi).Unix())
-				if lastAtime := lastSnap.peekAtime(cache.getCacheKey(key)); lastAtime < atime {
+				if lastAtime := lastSnap.peekAtime(cache.getCacheKey(key)); lastAtime > atime {
 					atime = lastAtime
 				}
 				size := parseObjOrigSize(key) // track logical size
@@ -996,7 +996,7 @@ func (cache *cacheStore) scanCached(fast bool) {
 					logger.Warnf("Ignore file with unknown size: %s", path)
 					return nil
 				}
-				if getNlink(fi) >= 1 {
+				if getNlink(fi) > 1 {
 					cache.add(key, -int32(size), atime)
 				} else {
 					cache.add(key, int32(size), atime)
