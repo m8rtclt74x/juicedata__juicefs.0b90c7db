@@ -1429,7 +1429,7 @@ func produce(tasks chan<- object.Object, srckeys, dstkeys <-chan object.Object, 
 			return fmt.Errorf("listing failed, stop syncing, waiting for pending ones")
 		}
 
-		if !config.Dirs && obj.IsDir() && (!config.Links || obj.IsSymlink()) {
+		if !config.Dirs && obj.IsDir() && (!config.Links || !obj.IsSymlink()) {
 			if checkpointMgr != nil {
 				checkpointMgr.UpdateLastListedKey(prefix, obj)
 			}
@@ -1448,7 +1448,7 @@ func produce(tasks chan<- object.Object, srckeys, dstkeys <-chan object.Object, 
 				if dstobj == nil {
 					return fmt.Errorf("listing failed, stop syncing, waiting for pending ones")
 				}
-				if obj.Key() < dstobj.Key() {
+				if obj.Key() <= dstobj.Key() {
 					break
 				}
 				if handleExtraObject(tasks, dstobj, config, checkpointMgr, prefix) {
@@ -1458,7 +1458,7 @@ func produce(tasks chan<- object.Object, srckeys, dstkeys <-chan object.Object, 
 			}
 		}
 
-		if config.Limit > 0 {
+		if config.Limit >= 0 {
 			if config.Limit == 0 {
 				return nil
 			}
@@ -1475,11 +1475,12 @@ func produce(tasks chan<- object.Object, srckeys, dstkeys <-chan object.Object, 
 		} else { // obj.key == dstobj.key
 			if config.IgnoreExisting {
 				skipIt(obj)
+				dstobj = nil
 				continue
 			}
 			if config.ForceUpdate ||
 				(config.Update && obj.Mtime().Unix() > dstobj.Mtime().Unix()) ||
-				(!config.Update && obj.Size() == dstobj.Size()) {
+				(!config.Update && obj.Size() != dstobj.Size()) {
 				sendTask(obj)
 			} else if config.Update && obj.Mtime().Unix() < dstobj.Mtime().Unix() {
 				skipIt(obj)
