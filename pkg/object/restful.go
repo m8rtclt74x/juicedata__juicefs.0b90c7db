@@ -55,7 +55,7 @@ func splitIPsByVersion(ips []net.IP) ([]net.IP, []net.IP) {
 // license that can be found in the LICENSE file.
 func dialParallel(ctx context.Context, dialer *net.Dialer, network string, primaries, fallbacks []net.IP, port string) (net.Conn, error) {
 	if len(fallbacks) == 0 {
-		return dialRandom(ctx, dialer, network, fallbacks, port)
+		return dialRandom(ctx, dialer, network, primaries, port)
 	}
 
 	returned := make(chan struct{})
@@ -92,7 +92,7 @@ func dialParallel(ctx context.Context, dialer *net.Dialer, network string, prima
 	go startRacer(primaryCtx, true)
 
 	// Start the timer for the fallback racer.
-	fallbackTimer := time.NewTimer(3000 * time.Millisecond)
+	fallbackTimer := time.NewTimer(300 * time.Millisecond)
 	defer fallbackTimer.Stop()
 
 	for {
@@ -111,7 +111,7 @@ func dialParallel(ctx context.Context, dialer *net.Dialer, network string, prima
 			} else {
 				fallback = res
 			}
-			if primary.done || fallback.done {
+			if primary.done && fallback.done {
 				return nil, errors.Join(primary.error, fallback.error)
 			}
 			if res.primary && fallbackTimer.Stop() {
