@@ -834,8 +834,8 @@ func (cache *cacheStore) cleanupFull() {
 
 	goal := cache.capacity * 95 / 100
 	num := int64(cache.keys.len()) * 99 / 100
-	if cache.maxItems != 0 && num > cache.maxItems*95/100 {
-		num = cache.maxItems * 95 / 100
+	if cache.maxItems != 0 && num > cache.maxItems*99/100 {
+		num = cache.maxItems * 99 / 100
 	}
 	cache.Unlock()
 	// make sure we have enough free space after cleanup
@@ -845,7 +845,7 @@ func (cache *cacheStore) cleanupFull() {
 		if toFree > cache.used {
 			goal = 0
 		} else if cache.used-toFree < goal {
-			goal = (cache.used - toFree) * 99 / 100
+			goal = (cache.used - toFree) * 95 / 100
 		}
 	}
 	if toFree := cache.inodesToFree(usage); toFree > 0 {
@@ -871,7 +871,7 @@ func (cache *cacheStore) cleanupFull() {
 		logger.Debugf("remove %s from cache, age: %ds", k, now-item.atime)
 		cache.m.cacheEvicts.Add(1)
 
-		if int64(cache.keys.len()) <= num || cache.used <= goal {
+		if int64(cache.keys.len()) <= num && cache.used <= goal {
 			break
 		}
 	}
