@@ -111,7 +111,7 @@ func (s *rSlice) ReadAt(ctx context.Context, page *Page, off int) (n int, err er
 		var got int
 		for got < len(p) {
 			// aligned to current page
-			l := min(len(p)-got, s.blockSize(s.index(off))-boff)
+			l := min(len(p)-got, s.blockSize(s.index(off))-off%s.store.conf.BlockSize)
 			pp := page.Slice(got, l)
 			n, err = s.ReadAt(ctx, pp, off)
 			pp.Release()
@@ -132,7 +132,7 @@ func (s *rSlice) ReadAt(ctx context.Context, page *Page, off int) (n int, err er
 		start := time.Now()
 		r, err := s.store.bcache.load(key)
 		if err == nil {
-			n, err = r.ReadAt(p, int64(0))
+			n, err = r.ReadAt(p, int64(boff))
 			if !s.store.conf.OSCache {
 				dropOSCache(r)
 			}
@@ -154,7 +154,7 @@ func (s *rSlice) ReadAt(ctx context.Context, page *Page, off int) (n int, err er
 	if s.store.seekable &&
 		(!s.store.conf.CacheEnabled() || (boff > 0 && len(p) <= blockSize/4)) {
 		n, err = s.store.loadRange(ctx, key, page, boff)
-		if err == nil || errors.Is(err, errTryFullRead) {
+		if err == nil || !errors.Is(err, errTryFullRead) {
 			return n, err
 		}
 	}
@@ -174,7 +174,7 @@ func (s *rSlice) ReadAt(ctx context.Context, page *Page, off int) (n int, err er
 		return 0, err
 	}
 	if block != page {
-		copy(p, block.Data)
+		copy(p, block.Data[boff:])
 	}
 	return len(p), nil
 }
